@@ -4,6 +4,9 @@
 #include "camera.h"
 #include <SFML/Graphics.hpp>
 
+sf::Vector2f currentAverage;
+sf::Vector2f lastAverage;
+
 constexpr size_t WINDOW_WIDTH = 1280;
 constexpr size_t WINDOW_HEIGHT = 720;
 constexpr float LINE_WIDTH = 4;
@@ -138,7 +141,41 @@ int main() {
         //
         // Use SOFT_LIMIT_PERCENT and HARD_LIMIT_PERCENT to parameterize the green and red
         // line positions.
-        camera.setCameraCenter({player.position.x, WINDOW_HEIGHT * 0.5f});
+        // camera.setCameraCenter({player.position.x, WINDOW_HEIGHT * 0.5f});
+        lastAverage = camera.getCameraCenter();
+        currentAverage = lastAverage;
+
+        float leftHardWorld = lastAverage.x - (WINDOW_WIDTH * 0.5f) + (WINDOW_WIDTH * HARD_LIMIT_PERCENT);
+        float leftSoftWorld = lastAverage.x - (WINDOW_WIDTH * 0.5f) + (WINDOW_WIDTH * SOFT_LIMIT_PERCENT);
+        float rightSoftWorld = lastAverage.x - (WINDOW_WIDTH * 0.5f) + (WINDOW_WIDTH * (1.0f - SOFT_LIMIT_PERCENT));
+        float rightHardWorld = lastAverage.x - (WINDOW_WIDTH * 0.5f) + (WINDOW_WIDTH * (1.0f - HARD_LIMIT_PERCENT));
+
+        if (player.position.x > rightSoftWorld && player.position.x < rightHardWorld)
+        {
+            currentAverage.x = player.position.x + (WINDOW_WIDTH * 0.5f) - (WINDOW_WIDTH * (1.0f - SOFT_LIMIT_PERCENT));
+            lastAverage.x += SOFT_CAMERA_ALPHA * (currentAverage.x - lastAverage.x);
+        }
+        else if (player.position.x > rightHardWorld)
+        {
+            lastAverage.x = player.position.x + (WINDOW_WIDTH * 0.5f) - (WINDOW_WIDTH * (1.0f - HARD_LIMIT_PERCENT));
+            player.position.x -= 1;
+        }
+        else if (player.position.x < leftSoftWorld && player.position.x > leftHardWorld)
+        {
+            currentAverage.x = player.position.x + (WINDOW_WIDTH * 0.5f) - (WINDOW_WIDTH * SOFT_LIMIT_PERCENT);
+            lastAverage.x += SOFT_CAMERA_ALPHA * (currentAverage.x - lastAverage.x);
+        }
+        else if (player.position.x < leftHardWorld)
+        {
+            lastAverage.x = player.position.x + (WINDOW_WIDTH * 0.5f) - (WINDOW_WIDTH * HARD_LIMIT_PERCENT);
+            player.position.x += 1;
+        }
+        else
+        {
+            //Player in the dead zone, camera does not move here. 
+        }
+
+        camera.setCameraCenter({lastAverage.x, WINDOW_HEIGHT * 0.5f});
 
         worldView.setCenter(camera.getCameraCenter());
         window.clear(sf::Color::Black);
